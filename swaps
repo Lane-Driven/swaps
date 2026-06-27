@@ -117,17 +117,59 @@ del_swap_file() {
 	exit 0
 }
 
+diff_this() {
+	local file="$1"
+    mapfile -t paths < <(find "$swapdir" -type f -iname "*${file}*")
+	
+	local count="${#paths[@]}"
+	if (( count == 0 )); then
+		echo "No files have the name $file"
+		exit 1
+	elif (( count == 1 )); then
+		local target="${paths[0]}"
+		diff $file $target | bat
+		exit 0
+	else
+		declare -A path_map
+		local short
+		
+		for path in "${paths[@]}"; do
+			short="${path##*/}"
+			path_map["$short"]="$path"
+		done
+
+		local old_ps3="$PS3"
+		PS3="Choose a file: "
+		select shortname in "${!path_map[@]}" "exit"; do
+			if [[ "$shortname" == "exit" ]]; then
+				return	
+			elif [[ -n "$shortname" ]]; then
+				local todiff="${path_map[$shortname]}"
+				echo "Comparing $todiff"
+				diff "$file" "$todiff" | bat
+				return
+			else
+				echo "Invalid selection"
+			fi
+		done
+		PS3="$ps3_old"
+	fi
+}
+
 swaps() {
 
 	if [ $# -eq 0 ]; then
 		default_swaps 
 	fi
 
-	while getopts ":hAd:" opt; do
+	while getopts ":hd:r:A" opt; do
 		case "${opt}" in
 			h)
 				usage; ;;
 			d)
+				diff_this "${OPTARG}"
+				;;
+			r)
 				del_swap_file "${OPTARG}"
 				;;
 			A)
@@ -143,6 +185,11 @@ swaps() {
 				;;
 		esac
 	done
+	shift $(( OPTIND - 1 ))
+	if [[ -n "$1" ]]; then
+		echo "Unexpected argument: $1"
+		usage "fail"
+	fi
 }
 
 swaps "$@"
