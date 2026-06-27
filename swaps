@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+
+swapdir="$HOME/.local/state/nvim-vim-pack/swap"
+
+usage() {
+	local exit_status=0
+	if [[ "$1" == "fail" ]]; then
+		exit_status=1
+	fi
+	echo "Usage: swaps [-h] [-d file]"
+	echo "  -h            Display help"
+	echo "  -d file       Delete file"
+	exit "$exit_status"
+}
+
+default_swaps() {
+	if [ $# -eq 0 ]; then
+		ls "$swapdir"
+	fi
+}
+
+del_swap() {
+	local file="$1"
+	local fullpath shortpath
+	fullpath=$(find "$swapdir" -type f -iname "*${file}*")
+	if [[ -z "$fullpath" ]]; then
+		echo "No files have the name $file"
+		exit 1
+	else
+		echo "$fullpath"
+		read -r -p "Delete this file? (y/N): " response
+		case "$response" in
+			[yY][eE][sS]|[yY])
+				rm "$fullpath"
+				;;
+			*)
+				echo "Canceled"
+				exit 1
+				;;
+		esac
+		exit 0
+	fi
+}
+
+swaps() {
+
+	if [ $# -eq 0 ]; then
+		default_swaps
+	fi
+
+	while getopts ":hd:" opt; do
+		case "${opt}" in
+			h)
+				usage; ;;
+			d)
+				del_swap "${OPTARG}"
+				;;
+			\?)
+				echo "Invalid option: -${OPTARG}" >&2
+				usage "fail"
+				;;
+			:)
+				echo "Option -${OPTARG} requires a file name"
+				exit 1
+				;;
+		esac
+	done
+}
+
+swaps "$@"
