@@ -11,16 +11,47 @@ usage() {
 		exit_status=1
 	fi
 	echo "Usage: swaps [-h] [-d file]"
-	echo "  -h            Display help"
-	echo "  -d file       Delete file"
+	echo "  -h            Display help."
+	echo "  -d file       Delete a swap file."
+	echo "  -A            Delete all files in swap directory."
 	exit "$exit_status"
 }
 
 default_swaps() {
-	ls "$swapdir"
+	mapfile -t files < <(ls -tr "$swapdir")
+
+	if (( ${#files[@]} == 0 )); then
+		echo "No files in swap directory."
+	else
+		for file in "${files[@]}"; do
+			echo "$file"
+		done
+	fi
 }
 
-del_swap() {
+del_all_files_in_swapdir() {
+	mapfile -t files < <(find "$swapdir" -type f -iname "*")
+	local count="${#files[@]}"
+	
+	if (( count == 0 )); then
+		echo "No files in swap directory."
+		return
+	else
+		read -r -p "Delete all files in swap? ($count files) (y/N)" response
+		case "$response" in
+			[yY][eE][sS]|[yY])
+				rm "${files[@]}"
+				;;
+			*)
+				echo "Canceled"
+				return
+				;;
+		esac
+	fi
+	echo "$count files deleted."
+}
+
+del_swap_file() {
 	local file="$1"
 	files=$(find "$swapdir" -type f -iname "*${file}*")
 
@@ -69,12 +100,15 @@ swaps() {
 		default_swaps 
 	fi
 
-	while getopts ":hd:" opt; do
+	while getopts ":hAd:" opt; do
 		case "${opt}" in
 			h)
 				usage; ;;
 			d)
-				del_swap "${OPTARG}"
+				del_swap_file "${OPTARG}"
+				;;
+			A)
+				del_all_files_in_swapdir
 				;;
 			\?)
 				echo "Invalid option: -${OPTARG}" >&2
