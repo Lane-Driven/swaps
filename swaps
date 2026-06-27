@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# Swap's Manager
+# Lane Maynor
+
 swapdir="$HOME/.local/state/nvim-vim-pack/swap"
 
 usage() {
@@ -14,30 +17,48 @@ usage() {
 }
 
 default_swaps() {
-	if [ $# -eq 0 ]; then
-		ls "$swapdir"
-	fi
+	ls "$swapdir"
 }
 
 del_swap() {
 	local file="$1"
-	local fullpath shortpath
-	fullpath=$(find "$swapdir" -type f -iname "*${file}*")
-	if [[ -z "$fullpath" ]]; then
+	files=$(find "$swapdir" -type f -iname "*${file}*")
+
+	if [[ -z "$files" ]]; then
 		echo "No files have the name $file"
 		exit 1
 	else
-		echo "$fullpath"
-		read -r -p "Delete this file? (y/N): " response
-		case "$response" in
-			[yY][eE][sS]|[yY])
-				rm "$fullpath"
-				;;
-			*)
-				echo "Canceled"
-				exit 1
-				;;
-		esac
+		local files_deleted=0
+		mapfile -t matches <<< "$files"
+		local count="${#matches[@]}"
+
+		if (( count == 1 )); then
+			echo "Found $count file."
+		else
+			echo "Found $count files."
+		fi
+
+		for file in "${matches[@]}"; do
+			echo "$file"
+			read -r -p "Delete this file? (y/N): " response
+			case "$response" in
+				[yY][eE][sS]|[yY])
+					rm "$file"
+					((files_deleted++))
+					;;
+				*)
+					echo "Canceled"
+					continue
+					;;
+			esac
+		done
+		if (( files_deleted > 0 )); then
+			if (( files_deleted == 1)); then
+				echo "Deleted $files_deleted file."
+			else
+				echo "Deleted $files_deleted files."
+			fi
+		fi
 		exit 0
 	fi
 }
@@ -45,7 +66,7 @@ del_swap() {
 swaps() {
 
 	if [ $# -eq 0 ]; then
-		default_swaps
+		default_swaps 
 	fi
 
 	while getopts ":hd:" opt; do
