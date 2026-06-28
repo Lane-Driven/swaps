@@ -145,8 +145,12 @@ diff_this() {
 				return	
 			elif [[ -n "$shortname" ]]; then
 				local todiff="${path_map[$shortname]}"
-				echo "Comparing $todiff"
-				diff "$file" "$todiff" | bat
+				local tmp_path="/tmp/swaps_file"
+
+				echo "Comparing $shortname"
+				nvim -es -r "$todiff" -c "w! $tmp_path" -c "qa!"
+				diff "$file" "$tmp_path" | bat
+
 				return
 			else
 				echo "Invalid selection"
