@@ -22,3 +22,5 @@ swaps -A
 ```
 Name matching is case-insensitive and partial - `swaps -r foo` will match any swap file containing `foo`.
 When multiple files match, an interactive menu is presented.
+
+change
